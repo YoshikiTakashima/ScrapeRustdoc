@@ -66,23 +66,81 @@ def _parse_enum_decl(decl):
     return obj.strip()
 
 def _parse_impl(impl_decl):
-    KEYWORD_TGT = "for"
-    KEYWORD_TRAIT = "impl"
+    KW_START = "impl"
+
+    ret = {'trait': '', 'object': '', 'constraints': ''}
+    real_decl = impl_decl[impl_decl.find(KW_START)+len(KW_START):]
+    parts = re.split("\s+for|where\s+", real_decl)
+    if len(parts) == 1: # implement pure object
+        ret['object'] = parts[0].strip()
+    elif len(parts) == 2: # implement trait for object
+        ret['object'] = parts[1].strip()
+        ret['trait'] = parts[0].strip()
+    elif len(parts) == 3: # implement trait for object with constraints
+        ret['object'] = parts[1].strip()
+        ret['trait'] = parts[0].strip()
+        ret['constraints'] = parts[2].strip()
+    
+    return ret
+
+def _parse_type_param(type_param_text):
+    i = 0
+    ret = []
+    last = 0
+    ctr = 0
+    while i < len(type_param_text):
+        if type_param_text[i] == '<':
+            ctr = 1
+            i += 1
+            while ctr > 0 and i < len(type_param_text):
+                if type_param_text[i] == '>':
+                    ctr -= 1
+                elif type_param_text[i] == '<':
+                    ctr += 1
+                i += 1
+        
+        if (i < len(type_param_text) and type_param_text[i] == ',') or \
+           (i == len(type_param_text) and ctr == 0):
+            ret.append(type_param_text[last:i].strip())
+            i += 1
+            last = i
+        elif (i == len(type_param_text)-1 and ctr == 0):
+            ret.append(type_param_text[last:].strip())
+        i+= 1
+    return ret
+
+def _type_list_to_type_const(type_list):
     ret = {}
-    trait_index = impl_decl.find(KEYWORD_TRAIT) + len(KEYWORD_TRAIT)
-    target_index_if_exist = impl_decl.find(KEYWORD_TGT)
-    if target_index_if_exist > trait_index: # case: impl "trait" for "object"
-        ret['trait'] = impl_decl[trait_index:target_index_if_exist].strip()
-        ret['object'] = impl_decl[target_index_if_exist+len(KEYWORD_TGT):].strip()
-    else:                                   # case: impl "object"
-        ret['trait'] = ''
-        ret['object'] = impl_decl[trait_index:].strip()
+    for ty in type_list:
+        parametrized = re.split('(.+):\s+(.+)', ty)
+        #print(parametrized)
+        if len(parametrized) == 1:
+            ret['self'] = parametrized[0]
+        elif len(parametrized) == 4:
+            ret[parametrized[1]] = parametrized[2]
     return ret
 
 ## Parsers for full functions.
 ## Requires function dictionary map and trait context
-def _parse_function(fn):
-    return {}
+def _parse_function(fn_decl):
+    KW_TO_OUT = "->"
+    KW_CONST = "where"
+    
+    ret = {'input': [], 'output': '', 'constraint': {}}
+    cur = fn_decl['decl']
+    if len(re.split("\s+where\s+", cur)) == 2:
+        ret['constraint'] = \
+            _type_list_to_type_const(_parse_type_param(re.split("\s+where\s+", cur)[1].strip()))
+        cur = re.split("\s+where\s+", cur)[0].strip()
+    if len(re.split("->", cur)) == 2:
+        ret['output'] = re.split("->", cur)[1].strip()
+        cur = re.split("->", cur)[0].strip()
+
+    fn_parsed = re.split('fn\s+(.+)\((.+)\)', cur)
+    print(fn_decl['decl'])
+    print(fn_parsed)
+    print("-----------------------------")
+    return ret
         
 # Simple file reader: filepath -> content
 #   If the file is read, then eliminate whitespace
@@ -142,14 +200,16 @@ if __name__ == "__main__":
         elif hdr["kind"] == "impl":
             fns_impl = _search_impl(hdr)
             impl_decl_parsed = _parse_impl(hdr['decl'])
-            _print_header(impl_decl_parsed, ['trait', 'object'])
+            #_print_header(impl_decl_parsed, ['trait', 'object'])
             for fn in fns_impl:
-                #_print_header(fn, ['kind', 'decl', 'parent'])
-                fn_decl_parsed = _parse_function(fn) # parse function decl
+                #print(fn['decl'])
+                #print("-----------------------------")
+                #_parse_function(fn)
+                _print_header(fn, ['kind', 'decl', 'parent'])
                 # add types
                 # append functions
-                pass
-    
+                #pass
+    #_type_list_to_type_const(_parse_type_param("F: FnMut(char) -> bool"))
     #for t in types:
     #    print(t)
     #print("-----------------------------")
