@@ -4,7 +4,7 @@ class FunctionDef:
     def __init__(self, name, input_types, output_type): # Input: str, [str], [str]
         self._name = name
         self._input_types = self.__strip_str_list(input_types)
-        self._output_type = self.__strip_str_list(output_type)
+        self._output_type = output_type.strip()
 
     def __strip_str_list(self, str_list):
         return list(map(lambda x: x.strip(), str_list))
@@ -15,32 +15,41 @@ class FunctionDef:
     def get_input(self): # -> [str]
         return self._input_types
 
-    def get_output(self): # -> [str]
+    def get_output(self): # -> str
         return self._output_type
 
 def print_sypet_type(type_def):
     print('petri.createType("{}");'.format(type_def))
 
 def print_sypet_function(fn_def):
+    #List<Pair<String, Integer>> inputs
+    print("inputs = new ArrayList<Pair<String, Integer>>();")
     name = fn_def.get_name()
-    input0 = "()"
-    output0 = "()"
+    input_type_str = '"void"'
+    output_type = fn_def.get_output()
+
+    input_count = dict()
+    for tp in fn_def.get_input():
+        if tp not in input_count.keys():
+            input_count[tp] = 1
+        else:
+            input_count[tp] = input_count[tp] + 1
+    if  len(input_count.keys()) > 0:
+        types = []
+        for tp in input_count.keys():
+            print('inputs.add(new ImmutablePair<String, Integer>("{}", new Integer({})));'.format(tp, input_count[tp]))
+        input_type_str = "inputs"
     
-    if len(fn_def.get_input()) > 0:
-        input0 = fn_def.get_input()[0]
-    if len(fn_def.get_output()) > 0:
-        output0 = fn_def.get_output()[0]
-    
-    print('petri.createAPI("{}", "{}", "{}");'.format(name, input0, output0))
+    print('petri.createAPI("{}", {}, "{}");'.format(name, input_type_str, output_type))
 
 
 def function_list_to_sypet(fn_list):
-    types = set([])
+    print("List<Pair<String, Integer>> inputs;")
+    types = set(["void"])
     for fn in fn_list:
         for tp in fn.get_input():
             types.add(tp)
-        for tp in fn.get_output():
-            types.add(tp)
+        types.add(fn.get_output())
 
     for tp in types:
         print_sypet_type(tp)
@@ -50,127 +59,135 @@ def function_list_to_sypet(fn_list):
 
 FUNCTIONS = []
 
-STRINGS = [FunctionDef("std::string::String/::core::cmp::PartialOrd[String,String]/lt",
-                       ["& String", "& String"], ["bool"]),
-           FunctionDef("std::string::String/::core::cmp::PartialOrd[String,String]/le",
-                       ["& String", "& String"], ["bool"]),
-           FunctionDef("std::string::String/::core::cmp::PartialOrd[String,String]/gt",
-                       ["& String", "& String"], ["bool"]),
-           FunctionDef("std::string::String/::core::cmp::PartialOrd[String,String]/ge",
-                       ["&String", "& String"], ["bool"]),
-           FunctionDef("std::string::String/::core::cmp::PartialEq[String,FromUtf8Error]/ne",
-                       ["& String", "& FromUtf8Error"], ["bool"]),
-           FunctionDef("std::string::String/Pub/with_capacity",
-                       ["usize"], ["String"]),
-           FunctionDef("std::string::String/Pub/from_utf8",
-                       ["Vec<u8>"], ["Result<String, FromUtf8Error>"]),
-           FunctionDef("std::string::String/Pub/from_utf8_lossy",
-                       ["& [u8]"], ["Cow<'_, str>"]),
-           FunctionDef("std::string::String/Pub/from_utf16",
-                       ["& [u16]"], ["Result<String, FromUtf16Error>"]),
-           FunctionDef("std::string::String/Pub/from_utf16_lossy",
-                       ["& [u16]"], ["String"]),
+STRINGS = [FunctionDef("std::string::String/core::cmp::PartialOrd[String,String]/lt",
+                       ["& String", "& String"], "bool"),
+           FunctionDef("std::string::String/core::cmp::PartialOrd[String,String]/le",
+                       ["& String", "& String"], "bool"),
+           FunctionDef("std::string::String/core::cmp::PartialOrd[String,String]/gt",
+                       ["& String", "& String"], "bool"),
+           FunctionDef("std::string::String/core::cmp::PartialOrd[String,String]/ge",
+                       ["& String", "& String"], "bool"),
+           FunctionDef("std::string::String/core::cmp::PartialEq[String,FromUtf8Error]/ne",
+                       ["& String", "& FromUtf8Error"], "bool"),
+           FunctionDef("std::string::String/Static/new",
+                       [], "String"),
+           FunctionDef("std::string::String/Static/with_capacity",
+                       ["usize"], "String"),
+           FunctionDef("std::string::String/Static/from_utf8",
+                       ["Vec<u8>"], "Result<String, FromUtf8Error>"),
+           FunctionDef("std::string::String/Static/from_utf8_lossy",
+                       ["& [u8]"], "Cow<'a, str>"),
+           FunctionDef("std::string::String/Static/from_utf16",
+                       ["& [u16]"], "Result<String, FromUtf16Error>"),
+           FunctionDef("std::string::String/Static/from_utf16_lossy",
+                       ["& [u16]"], "String"),
            FunctionDef("std::string::String/Pub/into_raw_parts",
-                       ["String"], ["*mut u8", "usize", "usize"]),
+                       ["String"], "(*mut u8, usize, usize)"),
            FunctionDef("std::string::String/Pub/into_bytes",
-                       ["String"], ["Vec<u8>"]),
+                       ["String"], "Vec<u8>"),
            FunctionDef("std::string::String/Pub/as_str",
-                       ["String"], ["& str"]),
+                       ["String"], "& str"),
            FunctionDef("std::string::String/Pub/as_mut_str",
-                       ["&mut String"], ["&mut str"]),
+                       ["&mut String"], "&mut str"),
            FunctionDef("std::string::String/Pub/push_str",
-                       ["&mut String"], ["&mut str"]),
+                       ["&mut String"], "&mut str"),
            FunctionDef("std::string::String/Pub/capacity",
-                       ["&String"], ["usize"]),
+                       ["& String"], "usize"),
            FunctionDef("std::string::String/Pub/reserve",
-                       ["&mut String", "usize"], []),
+                       ["&mut String", "usize"], "void"),
            FunctionDef("std::string::String/Pub/reserve_exact",
-                       ["&mut String", "usize"], []),
+                       ["&mut String", "usize"], "void"),
            FunctionDef("std::string::String/Pub/try_reserve",
-                       ["&mut String", "usize"], ["Result<(), TryReserveError>"]),
+                       ["&mut String", "usize"], "Result<void, TryReserveError>"),
            FunctionDef("std::string::String/Pub/try_reserve_exact",
-                       ["&mut String", "usize"], ["Result<(), TryReserveError>"]),
+                       ["&mut String", "usize"], "Result<void, TryReserveError>"),
            FunctionDef("std::string::String/Pub/shrink_to_fit",
-                       ["&mut String"], []),
+                       ["&mut String"], "void"),
            FunctionDef("std::string::String/Pub/shrink_to",
-                       ["&mut String", "usize"], []),
+                       ["&mut String", "usize"], "void"),
            FunctionDef("std::string::String/Pub/push",
-                       ["&mut String", "char"], []),
+                       ["&mut String", "char"], "void"),
            FunctionDef("std::string::String/Pub/as_bytes",
-                       ["& String", ], ["& [u8]"]),
+                       ["& String", ], "& [u8]"),
            FunctionDef("std::string::String/Pub/truncate",
-                       ["&mut String" ], ["usize"]),
+                       ["&mut String" ], "usize"),
            FunctionDef("std::string::String/Pub/pop",
-                       ["&mut String" ], ["Option<char>"]),
+                       ["&mut String" ], "Option<char>"),
            FunctionDef("std::string::String/Pub/remove",
-                       ["&mut String", "usize" ], ["char"]),
+                       ["&mut String", "usize" ], "char"),
            FunctionDef("std::string::String/Pub/retain<F>",
-                       ["&mut String", "FnMut(char) -> bool" ], ["bool"]),
+                       ["&mut String", "FnMut(char) -> bool" ], "bool"),
            FunctionDef("std::string::String/Pub/insert",
-                       ["&mut String", "usize", "char" ], []),
+                       ["&mut String", "usize", "char" ], "void"),
            FunctionDef("std::string::String/Pub/insert_str",
-                       ["&mut String", "usize", "& str" ], []),
+                       ["&mut String", "usize", "& str" ], "void"),
            FunctionDef("std::string::String/Pub/len",
-                       ["& String" ], ["usize"]),
+                       ["& String" ], "usize"),
            FunctionDef("std::string::String/Pub/is_empty",
-                       ["& String" ], ["bool"]),
+                       ["& String" ], "bool"),
            FunctionDef("std::string::String/Pub/split_off",
-                       ["&mut String", "usize" ], ["String"]),
+                       ["&mut String", "usize" ], "String"),
            FunctionDef("std::string::String/Pub/clear",
-                       ["&mut String"], []),
+                       ["&mut String"], "void"),
            FunctionDef("std::string::String/Pub/drain",
-                       ["&mut String", "RangeBounds<usize>"], ["Drain<'_> where"]),
+                       ["&mut String", "RangeBounds<usize>"], "Drain<'_>"),
            FunctionDef("std::string::String/Pub/replace_range",
-                       ["&mut String", "RangeBounds<usize>", "& str"], []),
+                       ["&mut String", "RangeBounds<usize>", "& str"], "void"),
            FunctionDef("std::string::String/Pub/into_boxed_str",
-                       ["&mut String"], ["Box<str>"]),
+                       ["&mut String"], "Box<str>"),
            FunctionDef("std::string::FromUtf8Error/Pub/into_bytes",
-                       ["FromUtf8Error"], ["Vec<u8>"]),
+                       ["FromUtf8Error"], "Vec<u8>"),
            FunctionDef("std::string::FromUtf8Error/Pub/utf8_error",
-                       ["& FromUtf8Error"], ["Utf8Error"]),
+                       ["& FromUtf8Error"], "Utf8Error"),
            FunctionDef("std::string::String/Pub/clone_from",
-                       ["& String", "& String"], []),
+                       ["&mut String", "& String"], "void"),
            FunctionDef("std::string::String/std::str::pattern::Pattern[String,str]/into_searcher",
-                       ["& String", "& str"], ["<&'b str as Pattern<'a>>::Searcher"]),
+                       ["& String", "& str"], "<&'b str as Pattern<'a>>::Searcher"),
            FunctionDef("std::string::String/std::str::pattern::Pattern[String,str]/is_contained_in",
-                       ["& String", "& str"], ["bool"]),
+                       ["& String", "& str"], "bool"),
            FunctionDef("std::string::String/std::str::pattern::Pattern[String,str]/prefix_of",
-                       ["& String", "& str"], ["bool"]),
-           FunctionDef("std::string::String/::core::cmp::PartialEq[String,String]/ne",
-                       ["& String", "& String"], ["bool"]),
-           FunctionDef("std::string::String/::core::cmp::PartialEq[String,str]/ne",
-                       ["& String", "& str"], ["bool"]),
-           FunctionDef("std::str/::core::cmp::PartialEq[str,String]/ne",
-                       ["& str", "& String"], ["bool"]),
-           FunctionDef("std::str/::core::cmp::PartialEq[str,Cow]/ne",
-                       [ "& String" ], ["<Cow<'a, str>"]),
-           FunctionDef("std::string::String/::core::ops::Add[String,str]/add",
-                       [ "& String", "& str" ], ["String"]),
-           FunctionDef("std::string::String/::core::ops::Deref[String]/deref",
-                       [ "& String" ], ["& str"]),
-           FunctionDef("std::string::String/ops::Index<ops::Range<usize>>[String]/index",
-                       [ "& String", "ops::Range<usize>" ], ["& str"]),
-           FunctionDef("std::string::String/ops::Index<ops::RangeTo<usize>>[String]/index",
-                       [ "& String", "ops::RangeTo<usize>" ], ["& str"]),
-           FunctionDef("std::string::String/ops::Index<ops::RangeFrom<usize>>[String]/index",
-                       [ "& String", "ops::RangeFrom<usize>" ], ["& str"]),
-           FunctionDef("std::string::String/ops::Index<ops::RangeFull>[String]/index",
-                       [ "& String", "ops::RangeFull" ], ["& str"]),
-           FunctionDef("std::string::String/ops::Index<ops::RangeInclusive<usize>>[String]/index",
-                       [ "& String", "ops::RangeInclusive<usize>" ], ["& str"]),
-           FunctionDef("std::string::String/ops::Index<ops::RangeToInclusive<usize>>[String]/index",
-                       [ "& String", "ops::RangeToInclusive<usize>" ], ["& str"]),
-           FunctionDef("std::string::String/std::str::FromStr[String]/index",
-                       [ "& str" ], ["Result<String, Self::Err>"]),
+                       ["& String", "& str"], "bool"),
+           FunctionDef("std::string::String/core::cmp::PartialEq[String,String]/ne",
+                       ["& String", "& String"], "bool"),
+           FunctionDef("std::string::String/core::cmp::PartialEq[String,str]/ne",
+                       ["& String", "& str"], "bool"),
+           FunctionDef("std::str/core::cmp::PartialEq[str,String]/ne",
+                       ["& str", "& String"], "bool"),
+           FunctionDef("std::str/core::cmp::PartialEq[str,Cow]/ne",
+                       [ "& String" ], "Cow<'a, str>"),
+           FunctionDef("std::string::String/core::ops::Add[String,str]/add",
+                       [ "& String", "& str" ], "String"),
+           FunctionDef("std::string::String/core::ops::Deref[String]/deref",
+                       [ "& String" ], "& str"),
+           FunctionDef("std::string::String/std::ops::Index<ops::Range<usize>>[String]/index",
+                       [ "& String", "ops::Range<usize>" ], "& str"),
+           FunctionDef("std::string::String/std::ops::Index<ops::RangeTo<usize>>[String]/index",
+                       [ "& String", "ops::RangeTo<usize>" ], "& str"),
+           FunctionDef("std::string::String/std::ops::Index<ops::RangeFrom<usize>>[String]/index",
+                       [ "& String", "ops::RangeFrom<usize>" ], "& str"),
+           FunctionDef("std::string::String/std::ops::Index<ops::RangeFull>[String]/index",
+                       [ "& String", "std::ops::RangeFull" ], "& str"),
+           FunctionDef("std::string::String/std::ops::Index<ops::RangeInclusive<usize>>[String]/index",
+                       [ "& String", "ops::RangeInclusive<usize>" ], "& str"),
+           FunctionDef("std::string::String/std::ops::Index<ops::RangeToInclusive<usize>>[String]/index",
+                       [ "& String", "ops::RangeToInclusive<usize>" ], "& str"),
+           FunctionDef("std::string::String/Static/std::str::FromStr[String]/from_str",
+                       [ "& str" ], "Result<String, ParseError>"),
            FunctionDef("std::string::String/std::str::FromStr[String]/write_char",
-                       [ "String", "char" ], ["std::fmt::Result"]),
+                       [ "String", "char" ], "std::fmt::Result"),
            FunctionDef("std::string::String/std::borrow::Borrow[String]/borrow",
-                       [ "String"], ["& String"]),
+                       [ "String"], "& String"),
            FunctionDef("std::string::String/std::borrow::BorrowMut[String]/borrow_mut",
-                       [ "String"], ["&mut String"])
+                       [ "mut String"], "&mut String"),
+           FunctionDef("std::string::Fromutf8Error/std::borrow::Borrow[FromUtf8Error]/borrow",
+                       [ "Fromutf8Error"], "& FromUtf8Error"),
+           FunctionDef("std::string::String/std::borrow::Borrow[str]/borrow",
+                       [ "str" ], "& str")
 ]
 
+USIZE = []
 
-FUNCTIONS = FUNCTIONS + STRINGS
+FUNCTIONS = FUNCTIONS + STRINGS + USIZE
+#print(len(FUNCTIONS))
 if __name__ == "__main__":
     function_list_to_sypet(FUNCTIONS)
