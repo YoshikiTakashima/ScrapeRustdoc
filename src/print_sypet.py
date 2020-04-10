@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import json
 
 class FunctionDef:
     def __init__(self, name, input_types, output_type): # Input: str, [str], [str]
@@ -57,6 +58,22 @@ def function_list_to_sypet(fn_list):
     for fn in fn_list:
         print_sypet_function(fn)
 
+def function_list_to_json(fn_list):
+    ctr = 0
+    obj_list = []
+    for fn in fn_list:
+        fn_obj = {}
+        fn_obj['trait'] = ''
+        fn_obj['dup'] = ctr
+        parts = fn.get_name().split('/')
+        fn_obj['path'] = parts[0] + '::' + parts[len(parts) - 1]
+        fn_obj['kind'] = 'static' if ('/Static/' in fn.get_name()) else 'non-static'
+        fn_obj['output'] = fn.get_output()
+        fn_obj['inputs'] = ', '.join(fn.get_input())
+        obj_list.append(fn_obj)
+        ctr += 1
+    print(json.dumps(obj_list))
+        
 FUNCTIONS = []
 
 STRINGS = [FunctionDef("std::string::String/core::cmp::PartialOrd[String,String]/lt",
@@ -190,4 +207,5 @@ USIZE = []
 FUNCTIONS = FUNCTIONS + STRINGS + USIZE
 #print(len(FUNCTIONS))
 if __name__ == "__main__":
-    function_list_to_sypet(FUNCTIONS)
+    #function_list_to_sypet(FUNCTIONS)
+    function_list_to_json(FUNCTIONS)
